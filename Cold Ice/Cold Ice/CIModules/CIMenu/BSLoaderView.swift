@@ -1,3 +1,10 @@
+//
+//  BSLoaderView.swift
+//  Cold Ice
+//
+//
+
+
 import SwiftUI
 
 struct BSLoaderView: View {
@@ -7,7 +14,7 @@ struct BSLoaderView: View {
     var body: some View {
         ZStack {
             ZStack {
-                Image(.loaderViewLogoBS)
+                Image("")
                     .resizable()
                     .ignoresSafeArea()
                     .scaledToFill()
@@ -18,7 +25,7 @@ struct BSLoaderView: View {
             
             VStack(spacing: 0) {
                 
-                Image(.loaderViewLogoBS)
+                Image("")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 200)

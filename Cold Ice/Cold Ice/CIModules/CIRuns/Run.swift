@@ -1,4 +1,12 @@
-struct Run: Codable, Identifiable {
+//
+//  Run.swift
+//  Cold Ice
+//
+//
+
+import SwiftUI
+
+struct Run: Codable, Identifiable, Hashable {
     let id = UUID()
     var location: String
     var date: Date
@@ -6,6 +14,7 @@ struct Run: Codable, Identifiable {
     var conditions: Condition
     var rideStyle: RideStyle
     var memories: String
+    var equipment: [GearItem] = []
     
     var imageData: Data?
     

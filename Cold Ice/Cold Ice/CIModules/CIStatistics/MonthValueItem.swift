@@ -1,9 +1,18 @@
-private extension CIStatsChartsView {
+//
+//  MonthValueItem.swift
+//  Cold Ice
+//
+//
+
+import SwiftUI
+import Charts
+
+extension CIStatisticsView {
     var preferredConditionsChart: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("PREFERRED CONDITIONS")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(secondaryText)
+                .foregroundColor(.secondary)
             
             Chart(preferredConditionMonthlyData) { item in
                 BarMark(
@@ -20,7 +29,7 @@ private extension CIStatsChartsView {
                     AxisTick()
                         .foregroundStyle(Color.gray.opacity(0.6))
                     AxisValueLabel()
-                        .foregroundStyle(secondaryText)
+                        .foregroundStyle(.secondary)
                 }
             }
             .chartXAxis {
@@ -30,7 +39,7 @@ private extension CIStatsChartsView {
                     AxisTick()
                         .foregroundStyle(Color.gray.opacity(0.6))
                     AxisValueLabel()
-                        .foregroundStyle(secondaryText)
+                        .foregroundStyle(.secondary)
                 }
             }
             .frame(height: 260)
@@ -40,7 +49,7 @@ private extension CIStatsChartsView {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(cardBorder, lineWidth: 1)
+                .stroke(.secondary, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
@@ -49,7 +58,7 @@ private extension CIStatsChartsView {
         VStack(alignment: .leading, spacing: 18) {
             Text("STYLE DISTRIBUTION")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(secondaryText)
+                .foregroundColor(.secondary)
             
             PieChartView(items: rideStyleChartData)
                 .frame(height: 280)
@@ -65,7 +74,7 @@ private extension CIStatsChartsView {
                     HStack(spacing: 8) {
                         Circle()
                             .fill(item.color)
-                            .frame(width: 12, height: 12)
+                            .frame(width: 14, height: 14)
                         
                         Text("\(item.title): \(item.value)")
                             .font(.system(size: 15, weight: .medium))
@@ -81,13 +90,13 @@ private extension CIStatsChartsView {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(cardBorder, lineWidth: 1)
+                .stroke(.secondary, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
 }
 
-private extension CIStatsChartsView {
+extension CIStatisticsView {
     var preferredConditionMonthlyData: [MonthValueItem] {
         guard let preferredSnowType = preferredSnowType(from: viewModel.runs) else { return [] }
         
@@ -142,7 +151,7 @@ private extension CIStatsChartsView {
         }
     }
     
-    func preferredSnowType(from runs: [Run]) -> Condition.SnowType? {
+    func preferredSnowType(from runs: [Run]) -> SnowType? {
         let counts = Dictionary(grouping: runs, by: { $0.conditions.snowType })
             .mapValues(\.count)
         
@@ -150,24 +159,12 @@ private extension CIStatsChartsView {
     }
     
     func rideStyleTitle(_ style: RideStyle) -> String {
-        String(describing: style)
+        String(describing: style.rideStyle.text)
             .replacingOccurrences(of: "_", with: " ")
             .capitalized
     }
 }
 
-private struct MonthValueItem: Identifiable {
-    let id = UUID()
-    let month: String
-    let value: Int
-}
-
-private struct PieChartItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let value: Int
-    let color: Color
-}
 
 private struct PieChartView: View {
     let items: [PieChartItem]

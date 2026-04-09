@@ -1,5 +1,13 @@
-struct GearItem: Identifiable, Equatable {
-    enum Kind {
+//
+//  GearItem.swift
+//  Cold Ice
+//
+//
+
+import SwiftUI
+
+struct GearItem: Codable, Identifiable, Equatable, Hashable {
+    enum Kind: Codable {
         case required
         case recommended
     }
@@ -30,16 +38,18 @@ struct GearItem: Identifiable, Equatable {
 }
 
 struct SmartGearView: View {
-    let rideType: RideType
-    var onReady: (([GearItem]) -> Void)? = nil
+    let run: Run
+    @Binding var path: [AppRoute]
+    @ObservedObject var viewModel: CIRunsViewModel
     
     @State private var customGearText = ""
     @State private var gearItems: [GearItem]
     
-    init(rideType: RideType, onReady: (([GearItem]) -> Void)? = nil) {
-        self.rideType = rideType
-        self.onReady = onReady
-        _gearItems = State(initialValue: SmartGearView.buildGear(for: rideType))
+    init(run: Run, path: Binding<[AppRoute]>, viewModel: CIRunsViewModel) {
+        self.run = run
+        self._path = path
+        self.viewModel = viewModel
+        self._gearItems = State(initialValue: SmartGearView.buildGear(for: .freeride))
     }
     
     private var checkedCount: Int {
@@ -56,9 +66,7 @@ struct SmartGearView: View {
     }
     
     private var progressText: String {
-        checkedCount == totalCount
-            ? "Everything is ready"
-            : "Make sure you have everything you need"
+        "Make sure you have everything you need"
     }
     
     private var progressTextColor: Color {
@@ -66,47 +74,84 @@ struct SmartGearView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                readinessBlock
+        VStack(spacing: 0) {
+            VStack {
+                HStack {
+                    Button {
+                        path.removeLast()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 14)
+                            .bold()
+                    }
+                    
+                    Text("Smart Gear")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.buttonBlue)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    
+                    Image(systemName: "chevron.left")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 14)
+                        .opacity(0)
+                    
+                }.padding(.horizontal, 24)
                 
-                gearListBlock
-                
-                customGearBlock
-                
-                Button {
-                    onReady?(gearItems)
-                } label: {
-                    Text("Ready for the Ride")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color.blue)
-                        )
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 4)
+                Rectangle()
+                    .frame(height: 2)
+                    .foregroundStyle(.secondary.opacity(0.2))
+                    .shadow(color: .secondary.opacity(0.4), radius: 1, y: 2)
             }
-            .padding(16)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    
+                    readinessBlock
+                    
+                    gearListBlock
+                    
+                    customGearBlock
+                    
+                    Button {
+                        
+                        var run = self.run
+                        run.equipment = gearItems.filter({ $0.isChecked })
+                        
+                        viewModel.add(run)
+                        path.removeAll()
+                    } label: {
+                        Text("Save Run")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color.blue)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
+                }
+                .padding(16)
+                .padding(.bottom, 150)
+            }
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle("Smart Gear")
-        .navigationBarTitleDisplayMode(.inline)
     }
     
     private var readinessBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Equipment Readiness")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                 
                 Spacer()
                 
                 Text("\(checkedCount) / \(totalCount)")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.blue)
             }
             
@@ -114,12 +159,16 @@ struct SmartGearView: View {
                 .progressViewStyle(.linear)
                 .tint(.blue)
                 .scaleEffect(x: 1, y: 1.4, anchor: .center)
-            
-            Text(progressText)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(progressTextColor)
+            if checkedCount == 0 {
+                Text(progressText)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.red)
+            } else {
+                Text(progressText)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.clear)
+            }
         }
-        .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color.white)
@@ -129,14 +178,16 @@ struct SmartGearView: View {
     private var gearListBlock: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("REQUIRED & RECOMMENDED")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.secondary)
             
             VStack(spacing: 12) {
                 ForEach(gearItems) { item in
-                    GearRow(item: item) {
-                        toggle(item)
-                    }
+                    GearRow(item: item)
+                        .onTapGesture {
+                            toggle(item)
+                        }
+                    
                 }
             }
             .padding(12)
@@ -154,7 +205,7 @@ struct SmartGearView: View {
     private var customGearBlock: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("ADD CUSTOM GEAR")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.secondary)
             
             HStack(spacing: 12) {
@@ -261,27 +312,25 @@ struct SmartGearView: View {
 
 struct GearRow: View {
     let item: GearItem
-    let action: () -> Void
     
     private var borderColor: Color {
-        item.kind == .required ? Color.red.opacity(0.45) : Color.gray.opacity(0.4)
+       Color.gray.opacity(0.4)
     }
     
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 0) {
                 Text(item.icon)
-                    .font(.system(size: 30))
+                    .font(.system(size: 32))
                     .frame(width: 40)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.title)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.black)
                     
                     if let subtitle = item.subtitle {
                         Text(subtitle)
-                            .font(.system(size: 13))
+                            .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -291,12 +340,12 @@ struct GearRow: View {
                 ZStack {
                     Circle()
                         .stroke(item.isChecked ? Color.blue : borderColor, lineWidth: 1.5)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 20, height: 20)
                     
                     if item.isChecked {
                         Circle()
                             .fill(Color.blue)
-                            .frame(width: 28, height: 28)
+                            .frame(width: 20, height: 20)
                         
                         Image(systemName: "checkmark")
                             .font(.system(size: 12, weight: .bold))
@@ -308,13 +357,17 @@ struct GearRow: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(Color(.white))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .stroke(Color.black.opacity(0.06), lineWidth: 1)
                     )
             )
-        }
-        .buttonStyle(.plain)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SmartGearView(run: Run(location: "", date: .now, time: .now, conditions: Condition(temperature: "", snowType: .artificial, wind: .calm, visibylity: .cloudy), rideStyle: RideStyle(equipment: .ski, rideStyle: .freeride), memories: ""), path: .constant([]), viewModel: CIRunsViewModel())
     }
 }
